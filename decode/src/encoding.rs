@@ -29,3 +29,15 @@ mod string {
         }
     }
 }
+
+mod uniqueid {
+    use super::*;
+    use uuid::Uuid;
+
+    impl Encodable for Uuid {
+        fn encode<W: Write>(&self, writer: &mut W) -> Result<(), std::io::Error> {
+            writer.write(self.as_bytes())?;
+            Ok(())
+        }
+    }
+}
