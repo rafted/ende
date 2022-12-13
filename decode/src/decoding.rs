@@ -21,14 +21,15 @@ mod bytes {
 
 mod strings {
     use super::*;
-    use byteorder::{BigEndian, ReadBytesExt};
+    use byteorder::ReadBytesExt;
 
     impl Decodable for String {
         fn decode<R: Read>(reader: &mut R) -> Result<Self, std::io::Error> {
             let string_len = reader.read_i8()?;
+
             let mut buf = Vec::with_capacity(string_len as usize);
             buf.resize(string_len as usize, 0);
-            
+
             reader.read(&mut buf[..])?;
 
             String::from_utf8(buf)

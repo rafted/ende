@@ -20,12 +20,13 @@ mod tests {
 mod proc_test {
     use crate::{decoding::Decodable, encoding::Encodable};
     use proc_macros::*;
+    use uuid::Uuid;
     use std::io::{Read, Write, Cursor};
 
     #[derive(MinecraftPacket, Debug)]
     struct LoginRequest {
         id: u8,
-        uuid: String,
+        uuid: Uuid,
         username: String,
     }
 
@@ -33,7 +34,7 @@ mod proc_test {
     fn test_login_request() {
         let request = LoginRequest {
             id: 3,
-            uuid: String::from("wasd"),
+            uuid: Uuid::new_v4(),
             username: String::from("wasd"),
         };
 
