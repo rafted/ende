@@ -24,6 +24,7 @@ mod string {
 
     impl Encodable for String {
         fn encode<W: Write>(&self, writer: &mut W) -> Result<(), std::io::Error> {
+            writer.write(&[self.len() as u8])?;
             writer.write(self.as_bytes())?;
             Ok(())
         }

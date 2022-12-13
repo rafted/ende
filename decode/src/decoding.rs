@@ -25,9 +25,11 @@ mod strings {
 
     impl Decodable for String {
         fn decode<R: Read>(reader: &mut R) -> Result<Self, std::io::Error> {
-            let string_len = reader.read_u32::<BigEndian>()?;
+            let string_len = reader.read_i8()?;
             let mut buf = Vec::with_capacity(string_len as usize);
-            reader.read(&mut buf)?;
+            buf.resize(string_len as usize, 0);
+            
+            reader.read(&mut buf[..])?;
 
             String::from_utf8(buf)
                 .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e))

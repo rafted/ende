@@ -18,7 +18,7 @@ mod tests {
 
 #[cfg(test)]
 mod proc_test {
-    use crate::{decoding::Decodable, encoding::Encodable, tests};
+    use crate::{decoding::Decodable, encoding::Encodable};
     use proc_macros::*;
     use std::io::{Read, Write, Cursor};
 
@@ -33,15 +33,14 @@ mod proc_test {
     fn test_login_request() {
         let request = LoginRequest {
             id: 3,
-            uuid: String::from(""),
-            username: String::from(""),
+            uuid: String::from("wasd"),
+            username: String::from("wasd"),
         };
 
         let buf = &mut Vec::<u8>::new();
         request.encode(buf).unwrap();
 
         let cursor = &mut Cursor::new(&buf);
-
         println!("{:?}, {:?}", buf, LoginRequest::decode(cursor));
     }
 }
