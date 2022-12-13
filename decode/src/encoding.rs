@@ -42,3 +42,44 @@ mod uniqueid {
         }
     }
 }
+
+mod varint {
+    use super::*;
+    use crate::VarInt;
+
+    impl Encodable for VarInt {
+        fn encode<W: Write>(&self, writer: &mut W) -> Result<(), std::io::Error> {
+            let mut remaining = *self;
+            while remaining >= 0b10000000 {
+                let byte = (remaining as u8) | 0b10000000;
+
+                writer.write_all(&[byte])?;
+                remaining >>= 7;
+            }
+            let byte = remaining as u8;
+
+            writer.write_all(&[byte])?;
+            Ok(())
+        }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use crate::packets::login::LoginRequest;
+    use uuid::Uuid;
+
+    #[test]
+    fn login_request_test() {
+        let request = LoginRequest {
+            id: 3,
+            uuid: Uuid::new_v4(),
+            username: String::from("NV6"),
+        };
+
+        let buf = &mut Vec::<u8>::new();
+        request.encode(buf).unwrap();
+
+        println!("{:?}, {:?}", buf, request);
+    }
+}

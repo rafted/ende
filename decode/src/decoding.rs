@@ -51,3 +51,49 @@ mod uniqueid {
         }
     }
 }
+
+mod varint {
+    use super::*;
+    use crate::VarInt;
+
+    impl Decodable for VarInt {
+        fn decode<R: Read>(reader: &mut R) -> Result<Self, std::io::Error> {
+            let mut result = 0;
+            let mut shift = 0;
+
+            loop {
+                let mut byte = [0];
+
+                reader.read_exact(&mut byte)?;
+
+                let value = (byte[0] & 0b01111111) as i32;
+
+                result |= value << shift;
+                shift += 7;
+
+                if byte[0] & 0b10000000 == 0 {
+                    break;
+                }
+            }
+            
+            Ok(result)
+        }
+    }
+}
+
+
+#[cfg(test)]
+mod test {
+    use crate::packets::login::LoginRequest;
+    use std::io::Cursor;
+
+    #[test]
+    fn login_request_test() {
+        let data = [
+            3, 39, 87, 131, 24, 27, 146, 72, 22, 145, 21, 235, 167, 174, 177, 105, 118, 3, 78, 86,
+            54,
+        ];
+        let cursor = &mut Cursor::new(&data);
+        println!("{:?}, {:?}", data, LoginRequest::decode(cursor));
+    }
+}

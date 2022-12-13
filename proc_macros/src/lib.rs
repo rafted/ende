@@ -39,12 +39,12 @@ pub fn define_packet(input: TokenStream) -> TokenStream {
     // Generate the implementation of the encode and decode methods
     let expanded = quote! {
         impl #name {
-            fn encode<W: Write>(&self, writer: &mut W) -> Result<(), std::io::Error> {
+            pub fn encode<W: Write>(&self, writer: &mut W) -> Result<(), std::io::Error> {
                 #encode_expand
                 Ok(())
             }
 
-            fn decode<R: Read>(reader: &mut R) -> Result<Self, std::io::Error> {
+            pub fn decode<R: Read>(reader: &mut R) -> Result<Self, std::io::Error> {
                 Ok(Self {
                     #decode_expand
                 })
