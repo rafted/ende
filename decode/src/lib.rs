@@ -35,7 +35,7 @@ mod proc_test {
         let request = LoginRequest {
             id: 3,
             uuid: Uuid::new_v4(),
-            username: String::from("wasd"),
+            username: String::from("NV6"),
         };
 
         let buf = &mut Vec::<u8>::new();
