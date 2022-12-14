@@ -25,19 +25,16 @@ pub fn get_packet_from_id(
     let data = [&[id], data].concat();
     let reader = &mut Cursor::new(data);
 
+    let error_msg = "Unimplemented or invalid packet id.";
+    let invalid_state_error = Err(std::io::Error::new(std::io::ErrorKind::NotFound, error_msg));
+
     return match state {
         PacketState::Login => match id {
             0x0 => LoginRequest::decode(reader),
-            _ => Err(std::io::Error::new(
-                std::io::ErrorKind::NotFound,
-                "Unimplemented or invalid packet id.",
-            )),
+            _ => invalid_state_error,
         },
         PacketState::Play => match id {
-            _ => Err(std::io::Error::new(
-                std::io::ErrorKind::NotFound,
-                "Unimplemented or invalid packet id.",
-            )),
+            _ => invalid_state_error,
         },
     };
 }
