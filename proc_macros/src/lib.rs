@@ -1,8 +1,6 @@
 use proc_macro::TokenStream;
 use quote::quote;
-use syn::{
-    parse_macro_input, Data, DeriveInput, Fields, Ident, Type,
-};
+use syn::{parse_macro_input, Data, DeriveInput, Fields, Ident, Type};
 
 #[proc_macro_derive(MinecraftPacket)]
 pub fn define_packet(input: TokenStream) -> TokenStream {
@@ -86,9 +84,17 @@ pub fn define_packet_parsers(input: TokenStream) -> TokenStream {
                     .parse::<proc_macro2::TokenStream>()
                     .unwrap();
 
+                    let packet_value_snake_self = to_snake_case(&format!("Parse{}", &packet_value.to_string()))
+                    .parse::<proc_macro2::TokenStream>()
+                    .unwrap();
+
                 quote! {
                     impl #name {
                         fn #packet_value_snake<R: Read>(reader: &mut R) -> Result<#packet_value, std::io::Error> {
+                            #packet_value::decode(reader)
+                        }
+
+                        pub fn #packet_value_snake_self<R: Read>(&self, reader: &mut R) -> Result<#packet_value, std::io::Error> {
                             #packet_value::decode(reader)
                         }
                     }

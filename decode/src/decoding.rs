@@ -132,8 +132,7 @@ mod test {
     #[test]
     fn login_request_test() {
         let data = [
-            3, 65, 186, 68, 123, 128, 149, 69, 88, 137, 93, 95, 27, 122, 64, 119, 113, 3, 78, 86,
-            54,
+            0, 42, 119, 244, 81, 115, 2, 77, 83, 147, 43, 174, 0, 244, 113, 141, 217, 3, 78, 86, 54,
         ];
         let cursor = &mut Cursor::new(&data);
         println!("{:?}, {:?}", data, LoginRequest::decode(cursor));

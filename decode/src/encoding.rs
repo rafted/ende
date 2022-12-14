@@ -100,6 +100,7 @@ mod test {
     #[test]
     fn login_request_test() {
         let request = LoginRequest {
+            id: 0x00,
             uuid: Uuid::new_v4(),
             username: String::from("NV6"),
         };

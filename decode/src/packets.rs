@@ -75,20 +75,22 @@ pub fn get_packet_type_from_id(
 
 pub mod status {
     pub mod clientbound {
-        use crate::decoding::Decodable;
         use crate::encoding::Encodable;
+        use crate::{decoding::Decodable, VarInt};
         use proc_macros::MinecraftPacket;
         use std::io::{Read, Write};
 
         // 0x00
         #[derive(MinecraftPacket, Debug)]
         pub struct StatusResponse {
+            pub id: VarInt,
             pub response: String,
         }
 
         // 0x01
         #[derive(MinecraftPacket, Debug)]
         pub struct PingResponse {
+            pub id: VarInt,
             pub payload: i64,
         }
     }
@@ -96,15 +98,33 @@ pub mod status {
 
 pub mod login {
 
-    use crate::decoding::Decodable;
     use crate::encoding::Encodable;
+    use crate::{decoding::Decodable, VarInt};
     use proc_macros::MinecraftPacket;
     use std::io::{Read, Write};
     use uuid::Uuid;
 
     #[derive(MinecraftPacket, Debug)]
     pub struct LoginRequest {
+        pub id: VarInt,
         pub uuid: Uuid,
         pub username: String,
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::PacketType;
+    use std::io::Cursor;
+
+    #[test]
+    fn packet_type() {
+        let packet_type = PacketType::LoginRequestType;
+        let data = [
+            0, 42, 119, 244, 81, 115, 2, 77, 83, 147, 43, 174, 0, 244, 113, 141, 217, 3, 78, 86, 54,
+        ];
+        let cursor = &mut Cursor::new(&data);
+
+        println!("{:?}", packet_type.parse_login_request(cursor));
     }
 }
