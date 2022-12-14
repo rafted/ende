@@ -22,6 +22,12 @@ mod bytes {
             writer.write_all(&[*self as u8])
         }
     }
+
+    impl Encodable for i64 {
+        fn encode<W: Write>(&self, writer: &mut W) -> Result<(), std::io::Error> {
+            writer.write_all(&self.to_be_bytes())
+        }
+    }
 }
 
 mod string {

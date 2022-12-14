@@ -81,6 +81,7 @@ where
                 Value::String(String::from(&value[1..value.len() - 1]))
             }
             value if value.starts_with('[') && value.ends_with(']') => {
+                // todo: save previous progress so we don't have to loop 3 times over the same vec in the worst case scenario.
                 fn parse_value_array<T>(value: &str) -> Result<Vec<T>, std::io::Error>
                 where
                     T: std::str::FromStr,
@@ -109,7 +110,7 @@ where
                 } else {
                     return Err(
                         std::io::Error::new(std::io::ErrorKind::Unsupported, "Unsupported operation, not able to match i8, i32 or i64 in Array NBT parsing.")
-                    )
+                    );
                 }
             }
             value if value.parse::<i8>().is_ok() => Value::Byte(value.parse::<i8>().unwrap()),

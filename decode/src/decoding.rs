@@ -10,7 +10,7 @@ pub enum DecodingError {
 
 mod bytes {
     use super::*;
-    use byteorder::ReadBytesExt;
+    use byteorder::{BigEndian, ReadBytesExt};
 
     impl Decodable for u8 {
         fn decode<R: Read>(reader: &mut R) -> Result<Self, std::io::Error> {
@@ -21,6 +21,12 @@ mod bytes {
     impl Decodable for i8 {
         fn decode<R: Read>(reader: &mut R) -> Result<Self, std::io::Error> {
             reader.read_i8()
+        }
+    }
+
+    impl Decodable for i64 {
+        fn decode<R: Read>(reader: &mut R) -> Result<Self, std::io::Error> {
+            reader.read_i64::<BigEndian>()
         }
     }
 }

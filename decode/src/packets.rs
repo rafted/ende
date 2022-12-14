@@ -1,12 +1,29 @@
+use proc_macros::ParsePacket;
 use std::io::Cursor;
+use std::io::Read;
 
-use self::login::LoginRequest;
+use self::{
+    login::LoginRequest,
+    status::clientbound::{PingResponse, StatusResponse},
+};
 
-pub trait Packet {}
+#[derive(ParsePacket)]
+pub enum Packet {
+    StatusResponseType(StatusResponse),
+    PingResponseType(PingResponse),
+    LoginRequestType(LoginRequest),
+}
 
 pub enum PacketState {
+    Status,
+    Handshake,
     Login,
     Play,
+}
+
+pub enum PacketDirection {
+    Clientbound,
+    Serverbound,
 }
 
 /// This method will merely act as a bridge between packet id -> whole packet.
@@ -20,23 +37,60 @@ pub enum PacketState {
 pub fn get_packet_from_id(
     id: u8,
     state: PacketState,
+    direction: PacketDirection,
     data: &[u8],
-) -> Result<impl Packet, std::io::Error> {
+) -> Result<Packet, std::io::Error> {
     let data = [&[id], data].concat();
     let reader = &mut Cursor::new(data);
 
     let error_msg = "Unimplemented or invalid packet id.";
     let invalid_state_error = Err(std::io::Error::new(std::io::ErrorKind::NotFound, error_msg));
 
-    return match state {
-        PacketState::Login => match id {
-            0x0 => LoginRequest::decode(reader),
-            _ => invalid_state_error,
+    return Ok(match direction {
+        PacketDirection::Serverbound => match state {
+            PacketState::Handshake => match id {
+                0x00 => invalid_state_error?,
+                _ => invalid_state_error?,
+            },
+            _ => invalid_state_error?,
         },
-        PacketState::Play => match id {
-            _ => invalid_state_error,
+        PacketDirection::Clientbound => match state {
+            PacketState::Handshake => invalid_state_error?,
+            PacketState::Status => match id {
+                0x00 => Packet::status_response_type(reader)?,
+                0x01 => Packet::ping_response_type(reader)?,
+                _ => invalid_state_error?,
+            },
+            PacketState::Login => match id {
+                0x00 => Packet::login_request_type(reader)?,
+                _ => invalid_state_error?,
+            },
+            _ => invalid_state_error?,
         },
-    };
+    });
+}
+
+pub mod status {
+    pub mod clientbound {
+        use crate::decoding::Decodable;
+        use crate::encoding::Encodable;
+        use proc_macros::MinecraftPacket;
+        use std::io::{Read, Write};
+
+        // 0x00
+        #[derive(MinecraftPacket, Debug)]
+        pub struct StatusResponse {
+            pub id: u8,
+            pub response: String,
+        }
+
+        // 0x01
+        #[derive(MinecraftPacket, Debug)]
+        pub struct PingResponse {
+            pub id: u8,
+            pub payload: i64,
+        }
+    }
 }
 
 pub mod login {
@@ -46,14 +100,10 @@ pub mod login {
     use std::io::{Read, Write};
     use uuid::Uuid;
 
-    use super::Packet;
-
     #[derive(MinecraftPacket, Debug)]
     pub struct LoginRequest {
         pub id: u8,
         pub uuid: Uuid,
         pub username: String,
     }
-
-    impl Packet for LoginRequest {}
 }
