@@ -17,6 +17,12 @@ mod bytes {
             reader.read_u8()
         }
     }
+
+    impl Decodable for i8 {
+        fn decode<R: Read>(reader: &mut R) -> Result<Self, std::io::Error> {
+            reader.read_i8()
+        }
+    }
 }
 
 mod strings {
@@ -75,12 +81,11 @@ mod varint {
                     break;
                 }
             }
-            
+
             Ok(result)
         }
     }
 }
-
 
 #[cfg(test)]
 mod test {

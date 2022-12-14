@@ -13,8 +13,13 @@ mod bytes {
 
     impl Encodable for u8 {
         fn encode<W: Write>(&self, writer: &mut W) -> Result<(), std::io::Error> {
-            writer.write_all(&[*self])?;
-            Ok(())
+            writer.write_all(&[*self])
+        }
+    }
+
+    impl Encodable for i8 {
+        fn encode<W: Write>(&self, writer: &mut W) -> Result<(), std::io::Error> {
+            writer.write_all(&[*self as u8])
         }
     }
 }
@@ -58,8 +63,7 @@ mod varint {
             }
             let byte = remaining as u8;
 
-            writer.write_all(&[byte])?;
-            Ok(())
+            writer.write_all(&[byte])
         }
     }
 }
