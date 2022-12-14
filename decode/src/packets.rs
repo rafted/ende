@@ -1,6 +1,6 @@
-use crate::decoding::Decodable;
+use crate::{decoding::Decodable, encoding::Encodable};
 use proc_macros::ParsePacket;
-use std::io::Read;
+use std::io::{Cursor, Read};
 
 use self::{
     login::LoginRequest,
@@ -9,12 +9,30 @@ use self::{
 
 #[derive(ParsePacket)]
 pub enum PacketType {
-    #[packet(type = StatusResponse)]
+    #[packet(0x00, StatusResponse)]
     StatusResponseType,
-    #[packet(type = PingResponse)]
+    #[packet(0x01, PingResponse)]
     PingResponseType,
-    #[packet(type = LoginRequest)]
+    #[packet(0x00, LoginRequest)]
     LoginRequestType,
+}
+
+impl PacketType {
+    pub fn wrap_packet<T>(&self, data: &[u8]) -> Result<T, std::io::Error>
+    where
+        T: Encodable + Decodable,
+    {
+        let id = self.get_id();
+        let data = if data[0] != id {
+            [&[id], data].concat()
+        } else {
+            [data].concat()
+        };
+
+        let reader = &mut Cursor::new(data);
+
+        Ok(T::decode(reader)?)
+    }
 }
 
 pub enum PacketState {
@@ -122,10 +140,9 @@ mod test {
     };
 
     use super::{login::LoginRequest, PacketType};
-    use std::io::Cursor;
 
     #[test]
-    fn packet_type() {
+    fn packet_type() -> Result<(), std::io::Error> {
         let request = LoginRequest {
             id: 0x00,
             uuid: Uuid::new_v4(),
@@ -137,17 +154,15 @@ mod test {
         request.encode(data).unwrap();
 
         let packet_type =
-            get_packet_type_from_id(0x00, PacketState::Login, PacketDirection::Clientbound)
-                .unwrap();
+            get_packet_type_from_id(0x00, PacketState::Login, PacketDirection::Clientbound)?;
 
-        let cursor = &mut Cursor::new(&data);
+        println!("{}", packet_type.get_id());
 
         if let PacketType::LoginRequestType = packet_type {
-            assert_eq!(
-                request,
-                packet_type.parse_login_request(cursor).unwrap(),
-                "Packet data does not match!"
-            );
+            let packet = packet_type.wrap_packet::<LoginRequest>(data)?;
+            assert_eq!(request, packet, "Packet data does not match!");
         }
+
+        Ok(())
     }
 }
