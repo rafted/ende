@@ -81,14 +81,14 @@ pub mod status {
         use std::io::{Read, Write};
 
         // 0x00
-        #[derive(MinecraftPacket, Debug)]
+        #[derive(MinecraftPacket, Debug, PartialEq)]
         pub struct StatusResponse {
             pub id: VarInt,
             pub response: String,
         }
 
         // 0x01
-        #[derive(MinecraftPacket, Debug)]
+        #[derive(MinecraftPacket, Debug, PartialEq)]
         pub struct PingResponse {
             pub id: VarInt,
             pub payload: i64,
@@ -104,7 +104,7 @@ pub mod login {
     use std::io::{Read, Write};
     use uuid::Uuid;
 
-    #[derive(MinecraftPacket, Debug)]
+    #[derive(MinecraftPacket, Debug, PartialEq)]
     pub struct LoginRequest {
         pub id: VarInt,
         pub uuid: Uuid,
@@ -114,24 +114,40 @@ pub mod login {
 
 #[cfg(test)]
 mod test {
-    use crate::packets::{get_packet_type_from_id, PacketDirection, PacketState};
+    use uuid::Uuid;
 
-    use super::PacketType;
+    use crate::{
+        encoding::Encodable,
+        packets::{get_packet_type_from_id, PacketDirection, PacketState},
+    };
+
+    use super::{login::LoginRequest, PacketType};
     use std::io::Cursor;
 
     #[test]
     fn packet_type() {
+        let request = LoginRequest {
+            id: 0x00,
+            uuid: Uuid::new_v4(),
+            username: String::from("NV6"),
+        };
+
+        let data = &mut Vec::<u8>::new();
+
+        request.encode(data).unwrap();
+
         let packet_type =
             get_packet_type_from_id(0x00, PacketState::Login, PacketDirection::Clientbound)
                 .unwrap();
 
-        let data = [
-            0, 42, 119, 244, 81, 115, 2, 77, 83, 147, 43, 174, 0, 244, 113, 141, 217, 3, 78, 86, 54,
-        ];
         let cursor = &mut Cursor::new(&data);
 
         if let PacketType::LoginRequestType = packet_type {
-            println!("{:?}", packet_type.parse_login_request(cursor));
+            assert_eq!(
+                request,
+                packet_type.parse_login_request(cursor).unwrap(),
+                "Packet data does not match!"
+            );
         }
     }
 }
