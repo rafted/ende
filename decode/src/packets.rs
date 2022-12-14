@@ -114,17 +114,24 @@ pub mod login {
 
 #[cfg(test)]
 mod test {
+    use crate::packets::{get_packet_type_from_id, PacketDirection, PacketState};
+
     use super::PacketType;
     use std::io::Cursor;
 
     #[test]
     fn packet_type() {
-        let packet_type = PacketType::LoginRequestType;
+        let packet_type =
+            get_packet_type_from_id(0x00, PacketState::Login, PacketDirection::Clientbound)
+                .unwrap();
+
         let data = [
             0, 42, 119, 244, 81, 115, 2, 77, 83, 147, 43, 174, 0, 244, 113, 141, 217, 3, 78, 86, 54,
         ];
         let cursor = &mut Cursor::new(&data);
 
-        println!("{:?}", packet_type.parse_login_request(cursor));
+        if let PacketType::LoginRequestType = packet_type {
+            println!("{:?}", packet_type.parse_login_request(cursor));
+        }
     }
 }
