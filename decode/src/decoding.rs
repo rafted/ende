@@ -126,7 +126,7 @@ mod position {
 
 #[cfg(test)]
 mod test {
-    use crate::packets::login::LoginRequest;
+    use crate::{decoding::Decodable, packets::login::LoginRequest};
     use std::io::Cursor;
 
     #[test]

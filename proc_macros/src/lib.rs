@@ -1,6 +1,8 @@
 use proc_macro::TokenStream;
 use quote::quote;
-use syn::{parse_macro_input, Data, DeriveInput, Fields, Ident, Type};
+use syn::{
+    parse_macro_input, Data, DeriveInput, Fields, Ident, Type,
+};
 
 #[proc_macro_derive(MinecraftPacket)]
 pub fn define_packet(input: TokenStream) -> TokenStream {
@@ -38,13 +40,15 @@ pub fn define_packet(input: TokenStream) -> TokenStream {
 
     // Generate the implementation of the encode and decode methods
     let expanded = quote! {
-        impl #name {
-            pub fn encode<W: Write>(&self, writer: &mut W) -> Result<(), std::io::Error> {
+        impl Encodable for #name {
+            fn encode<W: Write>(&self, writer: &mut W) -> Result<(), std::io::Error> {
                 #encode_expand
                 Ok(())
             }
+        }
 
-            pub fn decode<R: Read>(reader: &mut R) -> Result<Self, std::io::Error> {
+        impl Decodable for #name {
+            fn decode<R: Read>(reader: &mut R) -> Result<Self, std::io::Error> {
                 Ok(Self {
                     #decode_expand
                 })
@@ -55,74 +59,44 @@ pub fn define_packet(input: TokenStream) -> TokenStream {
     expanded.into()
 }
 
-#[proc_macro_derive(ParsePacket)]
+#[proc_macro_derive(ParsePacket, attributes(packet))]
 pub fn define_packet_parsers(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
     let name = input.ident;
 
     if let Data::Enum(data) = &input.data {
-        let tokens = data
+        let tokens: proc_macro2::TokenStream = data
             .variants
             .iter()
             .map(|variant| {
-                let variant_name = &variant.ident;
-                let variant_data = &variant.fields.iter().next().as_ref().unwrap().ty;
+                let attributes = &variant.attrs;
 
-                // we can definitely otpimize this, i just cannot be arsed to do the regex stuff.
-                fn to_snake_case(s: &str) -> String {
-                    let mut result = String::new();
-                    let mut prev_is_upper = false;
-
-                    for (i, ch) in s.chars().enumerate() {
-                        if ch.is_uppercase() {
-                            if i > 0 && !prev_is_upper {
-                                result.push('_');
-                            }
-                            result.extend(ch.to_lowercase());
-                            prev_is_upper = true;
-                        } else {
-                            result.push(ch);
-                            prev_is_upper = false;
-                        }
-                    }
-
-                    result
-                }
-
-                let snake_variant_name = to_snake_case(&variant_name.to_string())
+                let packet_value = attributes
+                    .iter()
+                    .next()
+                    .unwrap()
+                    .tokens
+                    .to_string()
+                    .replace("(type = ", "")
+                    .replace(")", "")
                     .parse::<proc_macro2::TokenStream>()
                     .unwrap();
 
-                if let syn::Type::Path(variant_data) = variant_data {
-                    let path = &variant_data.path;
-                    if let Some(segment) = path.segments.last() {
-                        let type_name = &segment.ident;
+                let packet_value_snake = to_snake_case(&packet_value.to_string())
+                    .parse::<proc_macro2::TokenStream>()
+                    .unwrap();
 
-                        quote! {
-                            fn #snake_variant_name<R: Read>(reader: &mut R) -> Result<#name, std::io::Error> {
-                                Ok(#name::#variant_name(#type_name::decode(reader)?))
-                            }
+                quote! {
+                    impl #name {
+                        fn #packet_value_snake<R: Read>(reader: &mut R) -> Result<#packet_value, std::io::Error> {
+                            #packet_value::decode(reader)
                         }
-                    } else {
-                        panic!("Invalid variant data!")
                     }
-                }  else {
-                    panic!("Invalid variant data!")
                 }
-
             })
-            .map(TokenStream::from)
-            .collect::<TokenStream>();
+            .collect();
 
-        let tokens: proc_macro2::TokenStream = tokens.into();
-
-
-        return quote! {
-            impl #name {
-                #tokens
-            }
-        }
-        .into();
+        return tokens.into();
     } else {
         panic!("Only allowed on enums!");
     }
@@ -165,4 +139,25 @@ pub fn define_nbt_decoder(input: TokenStream) -> TokenStream {
         }
     }
     .into()
+}
+
+// we can definitely otpimize this, i just cannot be arsed to do the regex stuff.
+fn to_snake_case(s: &str) -> String {
+    let mut result = String::new();
+    let mut prev_is_upper = false;
+
+    for (i, ch) in s.chars().enumerate() {
+        if ch.is_uppercase() {
+            if i > 0 && !prev_is_upper {
+                result.push('_');
+            }
+            result.extend(ch.to_lowercase());
+            prev_is_upper = true;
+        } else {
+            result.push(ch);
+            prev_is_upper = false;
+        }
+    }
+
+    result
 }

@@ -94,13 +94,12 @@ mod position {
 
 #[cfg(test)]
 mod test {
-    use crate::packets::login::LoginRequest;
+    use crate::{encoding::Encodable, packets::login::LoginRequest};
     use uuid::Uuid;
 
     #[test]
     fn login_request_test() {
         let request = LoginRequest {
-            id: 3,
             uuid: Uuid::new_v4(),
             username: String::from("NV6"),
         };
