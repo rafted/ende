@@ -69,6 +69,7 @@ pub fn define_packet_parsers(input: TokenStream) -> TokenStream {
             .map(|variant| {
                 let attributes = &variant.attrs;
 
+                // we have to write a better parser for this, this sucks. but i can't be arsed to spend more time on this right now.
                 let packet_value = attributes
                     .iter()
                     .next()
@@ -84,7 +85,7 @@ pub fn define_packet_parsers(input: TokenStream) -> TokenStream {
                     .parse::<proc_macro2::TokenStream>()
                     .unwrap();
 
-                    let packet_value_snake_self = to_snake_case(&format!("Parse{}", &packet_value.to_string()))
+                let packet_value_snake_self = to_snake_case(&format!("Parse{}", &packet_value.to_string()))
                     .parse::<proc_macro2::TokenStream>()
                     .unwrap();
 
