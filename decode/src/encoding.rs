@@ -68,6 +68,24 @@ mod varint {
     }
 }
 
+mod position {
+    use crate::position::Position;
+
+    use super::*;
+
+    impl Encodable for Position {
+        fn encode<W: Write>(&self, writer: &mut W) -> Result<(), std::io::Error> {
+            let value: i64 = ((self.x & 0x3FFFFFF) << 38) as i64
+                | ((self.z & 0x3FFFFFF) << 12) as i64
+                | (self.y as i32 & 0xFFF) as i64;
+
+            let buf = value.to_be_bytes();
+
+            writer.write_all(&buf)
+        }
+    }
+}
+
 #[cfg(test)]
 mod test {
     use crate::packets::login::LoginRequest;
