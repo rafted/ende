@@ -1,4 +1,4 @@
-use std::{num::TryFromIntError, io::Write};
+use std::{io::Write, num::TryFromIntError};
 
 use byteorder::{BigEndian, ReadBytesExt};
 

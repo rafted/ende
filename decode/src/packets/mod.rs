@@ -1,7 +1,7 @@
 pub mod clientbound;
 pub mod serverbound;
 
-use std::io::{Read, Write, Cursor};
+use std::io::{Cursor, Read, Write};
 
 use proc_macros::ParsePacket;
 

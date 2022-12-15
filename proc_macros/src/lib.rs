@@ -119,7 +119,7 @@ pub fn define_packet_parsers(input: TokenStream) -> TokenStream {
             })
             .collect();
 
-        quote! { 
+        quote! {
             impl #name {
                 #tokens
 
