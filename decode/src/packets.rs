@@ -4,7 +4,7 @@ use std::io::{Cursor, Read};
 
 use self::{
     login::LoginRequest,
-    play::clientbound::{SpawnEntity, animation::EntityAnimation, SpawnPlayer, SpawnExperienceOrb},
+    play::clientbound::{animation::EntityAnimation, SpawnEntity, SpawnExperienceOrb, SpawnPlayer},
     status::clientbound::{PingResponse, StatusResponse},
 };
 
@@ -24,6 +24,8 @@ pub enum PacketType {
     SpawnPlayerType,
     #[packet(0x03, EntityAnimation)]
     EntityAnimationType,
+    #[packet(0x04, AwardStatistics)]
+    AwardStatisticsType,
 }
 
 impl PacketType {
@@ -96,6 +98,7 @@ pub fn get_packet_type_from_id(
                 0x01 => PacketType::SpawnExperienceOrbType,
                 0x02 => PacketType::SpawnPlayerType,
                 0x03 => PacketType::EntityAnimationType,
+                0x04 => PacketType::AwardStatisticsType,
                 _ => invalid_state_error?,
             },
         },
@@ -211,6 +214,40 @@ pub mod play {
                 SwingOffHand = 3,
                 CriticalEffect = 4,
                 MagicCriticalEffect = 5,
+            }
+        }
+
+        pub mod statistics {
+            use crate::encoding::Encodable;
+            use crate::{decoding::Decodable, VarInt};
+            use proc_macros::MinecraftPacket;
+            use std::io::{Read, Write};
+
+            #[derive(PartialEq, Debug)]
+            pub enum CategoryType {
+                Mined = 0,
+                Crafted = 1,
+                Used = 2,
+                Broken = 3,
+                PickedUp = 4,
+                Dropped = 5,
+                Killed = 6,
+                KilledBy = 7,
+                Custom = 8,
+            }
+
+            #[derive(PartialEq, Debug)]
+            pub struct Statistic {
+                pub category: CategoryType, // this is the id of CategoryType
+                pub statistic_id: VarInt,
+                pub value: VarInt,
+            }
+
+            #[derive(MinecraftPacket, Debug, PartialEq)]
+            pub struct AwardStatistics {
+                pub id: VarInt,
+                pub count: VarInt,
+                pub statistic: Vec<Statistic>,
             }
         }
     }

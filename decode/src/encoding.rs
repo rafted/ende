@@ -149,6 +149,35 @@ mod animation {
     }
 }
 
+mod statistics {
+    use crate::packets::play::clientbound::statistics::{CategoryType, Statistic};
+
+    use super::Encodable;
+
+    impl Encodable for Statistic {
+        fn encode<W: std::io::Write>(&self, writer: &mut W) -> Result<(), std::io::Error> {
+            let category_id = match self.category {
+                CategoryType::Mined => 0,
+                CategoryType::Crafted => 1,
+                CategoryType::Used => 2,
+                CategoryType::Broken => 3,
+                CategoryType::PickedUp => 4,
+                CategoryType::Dropped => 5,
+                CategoryType::Killed => 6,
+                CategoryType::KilledBy => 7,
+                CategoryType::Custom => 8,
+            };
+
+            let statistic_id = self.statistic_id;
+            let value = self.value;
+
+            todo!("write varint (category_id)");
+            todo!("write varint (statistic_id)");
+            todo!("write varint (value)");
+        }
+    }
+}
+
 #[cfg(test)]
 mod test {
     use std::{io::Cursor, str::FromStr};

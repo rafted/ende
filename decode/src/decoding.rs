@@ -188,6 +188,37 @@ mod animation {
     }
 }
 
+mod statistics {
+    use crate::packets::play::clientbound::statistics::{CategoryType, Statistic};
+
+    use super::Decodable;
+
+    impl Decodable for Statistic {
+        fn decode<R: std::io::Read>(reader: &mut R) -> Result<Self, std::io::Error> {
+            let category_id = todo!("read varint");
+            let statistic_id = todo!("read varint");
+            let value = todo!("read varint");
+
+            Ok(Statistic {
+                category: match category_id {
+                    0 => CategoryType::Mined,
+                    1 => CategoryType::Crafted,
+                    2 => CategoryType::Used,
+                    3 => CategoryType::Broken,
+                    4 => CategoryType::PickedUp,
+                    5 => CategoryType::Dropped,
+                    6 => CategoryType::Killed,
+                    7 => CategoryType::KilledBy,
+                    8 => CategoryType::Custom,
+                    _ => panic!("Invalid Category ID"),
+                },
+                statistic_id,
+                value,
+            })
+        }
+    }
+}
+
 #[cfg(test)]
 mod test {
     use crate::{decoding::Decodable, packets::login::LoginRequest};
