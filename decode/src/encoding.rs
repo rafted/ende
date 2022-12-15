@@ -23,8 +23,30 @@ mod bytes {
         }
     }
 
+    impl Encodable for i16 {
+        fn encode<W: Write>(&self, writer: &mut W) -> Result<(), std::io::Error> {
+            writer.write_all(&self.to_be_bytes())
+        }
+    }
+
     impl Encodable for i64 {
         fn encode<W: Write>(&self, writer: &mut W) -> Result<(), std::io::Error> {
+            writer.write_all(&self.to_be_bytes())
+        }
+    }
+}
+
+mod floats {
+    use super::Encodable;
+
+    impl Encodable for f32 {
+        fn encode<W: std::io::Write>(&self, writer: &mut W) -> Result<(), std::io::Error> {
+            writer.write_all(&self.to_be_bytes())
+        }
+    }
+
+    impl Encodable for f64 {
+        fn encode<W: std::io::Write>(&self, writer: &mut W) -> Result<(), std::io::Error> {
             writer.write_all(&self.to_be_bytes())
         }
     }
@@ -102,6 +124,27 @@ mod position {
             let buf = value.to_be_bytes();
 
             writer.write_all(&buf)
+        }
+    }
+}
+
+mod animation {
+    use byteorder::WriteBytesExt;
+
+    use crate::packets::play::clientbound::animation::EntityAnimationType;
+
+    use super::Encodable;
+
+    impl Encodable for EntityAnimationType {
+        fn encode<W: std::io::Write>(&self, writer: &mut W) -> Result<(), std::io::Error> {
+            match self {
+                EntityAnimationType::SwingMainArm => writer.write_u8(0x0),
+                EntityAnimationType::TakeDamage => writer.write_u8(0x1),
+                EntityAnimationType::LeaveBed => writer.write_u8(0x2),
+                EntityAnimationType::SwingOffHand => writer.write_u8(0x3),
+                EntityAnimationType::CriticalEffect => writer.write_u8(0x4),
+                EntityAnimationType::MagicCriticalEffect => writer.write_u8(0x5),
+            }
         }
     }
 }

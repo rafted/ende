@@ -1,3 +1,5 @@
+pub type Angle = f32;
+
 #[derive(Debug, Clone, Copy)]
 pub struct Position {
     pub x: i32,

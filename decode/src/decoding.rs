@@ -24,9 +24,33 @@ mod bytes {
         }
     }
 
+    impl Decodable for i16 {
+        fn decode<R: Read>(reader: &mut R) -> Result<Self, std::io::Error> {
+            reader.read_i16::<BigEndian>()
+        }
+    }
+
     impl Decodable for i64 {
         fn decode<R: Read>(reader: &mut R) -> Result<Self, std::io::Error> {
             reader.read_i64::<BigEndian>()
+        }
+    }
+}
+
+mod floats {
+    use byteorder::{BigEndian, ReadBytesExt};
+
+    use super::*;
+
+    impl Decodable for f32 {
+        fn decode<R: Read>(reader: &mut R) -> Result<Self, std::io::Error> {
+            reader.read_f32::<BigEndian>()
+        }
+    }
+
+    impl Decodable for f64 {
+        fn decode<R: Read>(reader: &mut R) -> Result<Self, std::io::Error> {
+            reader.read_f64::<BigEndian>()
         }
     }
 }
@@ -52,6 +76,7 @@ mod strings {
 
 mod uniqueid {
     use super::*;
+    use byteorder::ReadBytesExt;
     use uuid::Uuid;
 
     impl Decodable for Uuid {
@@ -65,16 +90,10 @@ mod uniqueid {
 
     impl Decodable for Option<Uuid> {
         fn decode<R: Read>(reader: &mut R) -> Result<Self, std::io::Error> {
-            let mut buf = [0; 1];
-            let result = reader.read(&mut buf[..]);
+            let result = reader.read_u8()?;
 
-            if result.is_ok() {
-                let bool_num = buf[0];
-                let bool = bool_num == 0x01;
-
-                if bool {
-                    return Ok(Some(Uuid::decode(reader)?));
-                }
+            if result == 0x01 {
+                return Ok(Some(Uuid::decode(reader)?));
             }
 
             Ok(None)
@@ -138,6 +157,33 @@ mod position {
                 .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e))?;
 
             Ok(Position { x, y, z })
+        }
+    }
+}
+
+mod animation {
+    use byteorder::ReadBytesExt;
+
+    use crate::packets::play::clientbound::animation::EntityAnimationType;
+
+    use super::Decodable;
+
+    impl Decodable for EntityAnimationType {
+        fn decode<R: std::io::Read>(reader: &mut R) -> Result<Self, std::io::Error> {
+            let animation_id = reader.read_u8()?;
+
+            Ok(match animation_id {
+                0x0 => Self::SwingMainArm,
+                0x1 => Self::TakeDamage,
+                0x2 => Self::LeaveBed,
+                0x3 => Self::SwingOffHand,
+                0x4 => Self::CriticalEffect,
+                0x5 => Self::MagicCriticalEffect,
+                _ => Err(std::io::Error::new(
+                    std::io::ErrorKind::Unsupported,
+                    format!("Unsupported animation ID, {}", animation_id),
+                ))?,
+            })
         }
     }
 }

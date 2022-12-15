@@ -4,6 +4,7 @@ use std::io::{Cursor, Read};
 
 use self::{
     login::LoginRequest,
+    play::clientbound::{SpawnEntity, animation::EntityAnimation, SpawnPlayer, SpawnExperienceOrb},
     status::clientbound::{PingResponse, StatusResponse},
 };
 
@@ -15,6 +16,14 @@ pub enum PacketType {
     PingResponseType,
     #[packet(0x00, LoginRequest)]
     LoginRequestType,
+    #[packet(0x00, SpawnEntity)]
+    SpawnEntityType,
+    #[packet(0x01, SpawnExperienceOrb)]
+    SpawnExperienceOrbType,
+    #[packet(0x02, SpawnPlayer)]
+    SpawnPlayerType,
+    #[packet(0x03, EntityAnimation)]
+    EntityAnimationType,
 }
 
 impl PacketType {
@@ -82,7 +91,13 @@ pub fn get_packet_type_from_id(
                 0x00 => PacketType::LoginRequestType,
                 _ => invalid_state_error?,
             },
-            _ => invalid_state_error?,
+            PacketState::Play => match id {
+                0x00 => PacketType::SpawnEntityType,
+                0x01 => PacketType::SpawnExperienceOrbType,
+                0x02 => PacketType::SpawnPlayerType,
+                0x03 => PacketType::EntityAnimationType,
+                _ => invalid_state_error?,
+            },
         },
     });
 }
@@ -123,6 +138,81 @@ pub mod login {
         pub id: VarInt,
         pub uuid: Option<Uuid>,
         pub username: String,
+    }
+}
+
+pub mod play {
+    pub mod clientbound {
+        use crate::encoding::Encodable;
+        use crate::position::Angle;
+        use crate::{decoding::Decodable, VarInt};
+        use proc_macros::MinecraftPacket;
+        use std::io::{Read, Write};
+        use uuid::Uuid;
+
+        #[derive(MinecraftPacket, Debug, PartialEq)]
+        pub struct SpawnEntity {
+            pub id: VarInt,
+            pub entity_id: VarInt,
+            pub entity_unique_id: Uuid,
+            pub ty: VarInt,
+            pub x: f64,
+            pub y: f64,
+            pub z: f64,
+            pub pitch: Angle,
+            pub yaw: Angle,
+            pub head_yaw: Angle,
+            pub data: VarInt,
+            pub velocity_x: i16,
+            pub velocity_y: i16,
+            pub velocity_z: i16,
+        }
+
+        #[derive(MinecraftPacket, Debug, PartialEq)]
+        pub struct SpawnExperienceOrb {
+            pub id: VarInt,
+            pub entity_id: VarInt,
+            pub x: f64,
+            pub y: f64,
+            pub z: f64,
+            pub count: i16,
+        }
+
+        #[derive(MinecraftPacket, Debug, PartialEq)]
+        pub struct SpawnPlayer {
+            pub id: VarInt,
+            pub entity_id: VarInt,
+            pub unique_id: Uuid,
+            pub x: f64,
+            pub y: f64,
+            pub z: f64,
+            pub yaw: Angle,
+            pub pitch: Angle,
+        }
+
+        pub mod animation {
+            use crate::encoding::Encodable;
+            use crate::{decoding::Decodable, VarInt};
+            use proc_macros::MinecraftPacket;
+            use std::io::{Read, Write};
+
+            #[derive(MinecraftPacket, Debug, PartialEq)]
+            pub struct EntityAnimation {
+                pub id: VarInt,
+                pub entity_id: VarInt,
+                pub animation: EntityAnimationType,
+            }
+
+            #[derive(PartialEq, Debug)]
+            pub enum EntityAnimationType {
+                SwingMainArm = 0,
+                TakeDamage = 1,
+                LeaveBed = 2,
+                SwingOffHand = 3,
+                CriticalEffect = 4,
+                MagicCriticalEffect = 5,
+            }
+        }
     }
 }
 
