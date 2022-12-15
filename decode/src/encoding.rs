@@ -44,11 +44,25 @@ mod string {
 
 mod uniqueid {
     use super::*;
+    use byteorder::WriteBytesExt;
     use uuid::Uuid;
 
     impl Encodable for Uuid {
         fn encode<W: Write>(&self, writer: &mut W) -> Result<(), std::io::Error> {
             writer.write(self.as_bytes())?;
+            Ok(())
+        }
+    }
+
+    impl Encodable for Option<Uuid> {
+        fn encode<W: Write>(&self, writer: &mut W) -> Result<(), std::io::Error> {
+            let has_unique_id = if self.is_some() { 0x01 } else { 0x00 };
+            writer.write_u8(has_unique_id)?;
+
+            if let Some(id) = self {
+                id.encode(writer)?;
+            }
+
             Ok(())
         }
     }
@@ -94,20 +108,30 @@ mod position {
 
 #[cfg(test)]
 mod test {
-    use crate::{encoding::Encodable, packets::login::LoginRequest};
+    use std::{io::Cursor, str::FromStr};
+
+    use crate::{decoding::Decodable, encoding::Encodable, packets::login::LoginRequest};
     use uuid::Uuid;
 
     #[test]
     fn login_request_test() {
+        let unique_id = Some(Uuid::from_str("2fc8417d-9e8b-470b-9b73-aaa14fe177bc").unwrap());
+
         let request = LoginRequest {
             id: 0x00,
-            uuid: Uuid::new_v4(),
+            uuid: unique_id,
             username: String::from("NV6"),
         };
 
         let buf = &mut Vec::<u8>::new();
+        let buf2 = &mut Vec::<u8>::new();
         request.encode(buf).unwrap();
+        unique_id.encode(buf2).unwrap();
 
-        println!("{:?}, {:?}", buf, request);
+        let mut cursor = Cursor::new(&buf);
+        let mut cursor2 = Cursor::new(&buf2);
+
+        assert_eq!(request, LoginRequest::decode(&mut cursor).unwrap());
+        assert_eq!(Option::<Uuid>::decode(&mut cursor2).unwrap(), unique_id);
     }
 }

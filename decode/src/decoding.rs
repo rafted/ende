@@ -62,6 +62,24 @@ mod uniqueid {
             Ok(Uuid::from_bytes(*buffer))
         }
     }
+
+    impl Decodable for Option<Uuid> {
+        fn decode<R: Read>(reader: &mut R) -> Result<Self, std::io::Error> {
+            let mut buf = [0; 1];
+            let result = reader.read(&mut buf[..]);
+
+            if result.is_ok() {
+                let bool_num = buf[0];
+                let bool = bool_num == 0x01;
+
+                if bool {
+                    return Ok(Some(Uuid::decode(reader)?));
+                }
+            }
+
+            Ok(None)
+        }
+    }
 }
 
 mod varint {
@@ -132,7 +150,8 @@ mod test {
     #[test]
     fn login_request_test() {
         let data = [
-            0, 42, 119, 244, 81, 115, 2, 77, 83, 147, 43, 174, 0, 244, 113, 141, 217, 3, 78, 86, 54,
+            0, 1, 47, 200, 65, 125, 158, 139, 71, 11, 155, 115, 170, 161, 79, 225, 119, 188, 3, 78,
+            86, 54,
         ];
         let cursor = &mut Cursor::new(&data);
         println!("{:?}, {:?}", data, LoginRequest::decode(cursor));

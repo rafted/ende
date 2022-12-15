@@ -1,6 +1,6 @@
 use proc_macro::TokenStream;
-use quote::quote;
-use syn::{parse_macro_input, Data, DeriveInput, Fields, Ident, Type};
+use quote::{quote, ToTokens};
+use syn::{parse_macro_input, Data, DeriveInput, Fields, Ident, Path, Type};
 
 #[proc_macro_derive(MinecraftPacket)]
 pub fn define_packet(input: TokenStream) -> TokenStream {
@@ -27,13 +27,30 @@ pub fn define_packet(input: TokenStream) -> TokenStream {
     let mut decode_expand = quote! {};
 
     for (field_name, field_type) in fields {
-        encode_expand.extend(quote! {
-            self.#field_name.encode(writer)?;
-        });
+        if let Type::Path(path) = &field_type {
+            let segments = path.path.segments.to_token_stream().to_string();
 
-        decode_expand.extend(quote! {
-            #field_name: #field_type::decode(reader)?,
-        });
+            if segments.contains("<") {
+                let types = segments.split("<").collect::<Vec<&str>>();
+
+                let enum_ty = types[0].parse::<proc_macro2::TokenStream>().unwrap();
+                let data_ty = types[1]
+                    .replace(">", "")
+                    .parse::<proc_macro2::TokenStream>()
+                    .unwrap();
+
+                decode_expand.extend(quote! {
+                    #field_name: #enum_ty::<#data_ty>::decode(reader)?,
+                });
+            } else {
+                decode_expand.extend(quote! {
+                    #field_name: #field_type::decode(reader)?,
+                });
+            }
+            encode_expand.extend(quote! {
+                self.#field_name.encode(writer)?;
+            });
+        }
     }
 
     // Generate the implementation of the encode and decode methods
@@ -90,7 +107,6 @@ pub fn define_packet_parsers(input: TokenStream) -> TokenStream {
                 let packet_value_snake = to_snake_case(&packet_value.to_string())
                     .parse::<proc_macro2::TokenStream>()
                     .unwrap();
-                    
                 ids.extend(quote! {
                     #name::#variant_name => (#id as u8),
                 });

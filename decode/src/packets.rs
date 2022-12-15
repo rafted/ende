@@ -59,11 +59,7 @@ pub fn get_packet_type_from_id(
     id: u8,
     state: PacketState,
     direction: PacketDirection,
-    // data: &[u8],
 ) -> Result<PacketType, std::io::Error> {
-    // let data = [&[id], data].concat();
-    // let reader = &mut Cursor::new(data);
-
     let error_msg = "Unimplemented or invalid packet id.";
     let invalid_state_error = Err(std::io::Error::new(std::io::ErrorKind::NotFound, error_msg));
 
@@ -125,13 +121,15 @@ pub mod login {
     #[derive(MinecraftPacket, Debug, PartialEq)]
     pub struct LoginRequest {
         pub id: VarInt,
-        pub uuid: Uuid,
+        pub uuid: Option<Uuid>,
         pub username: String,
     }
 }
 
 #[cfg(test)]
 mod test {
+    use std::str::FromStr;
+
     use uuid::Uuid;
 
     use crate::{
@@ -145,7 +143,7 @@ mod test {
     fn packet_type() -> Result<(), std::io::Error> {
         let request = LoginRequest {
             id: 0x00,
-            uuid: Uuid::new_v4(),
+            uuid: Some(Uuid::from_str("2fc8417d-9e8b-470b-9b73-aaa14fe177bc").unwrap()),
             username: String::from("NV6"),
         };
 
@@ -156,11 +154,11 @@ mod test {
         let packet_type =
             get_packet_type_from_id(0x00, PacketState::Login, PacketDirection::Clientbound)?;
 
-        println!("{}", packet_type.get_id());
-
         if let PacketType::LoginRequestType = packet_type {
             let packet = packet_type.wrap_packet::<LoginRequest>(data)?;
+
             assert_eq!(request, packet, "Packet data does not match!");
+            assert_eq!(0x00, packet_type.get_id());
         }
 
         Ok(())
