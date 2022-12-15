@@ -1,6 +1,6 @@
 use proc_macro::TokenStream;
 use quote::{quote, ToTokens};
-use syn::{parse_macro_input, Data, DeriveInput, Fields, Ident, Path, Type};
+use syn::{parse_macro_input, Data, DeriveInput, Fields, Ident, Type};
 
 #[proc_macro_derive(MinecraftPacket)]
 pub fn define_packet(input: TokenStream) -> TokenStream {
@@ -55,15 +55,15 @@ pub fn define_packet(input: TokenStream) -> TokenStream {
 
     // Generate the implementation of the encode and decode methods
     let expanded = quote! {
-        impl Encodable for #name {
-            fn encode<W: Write>(&self, writer: &mut W) -> Result<(), std::io::Error> {
+        impl crate::packets::Encodable for #name {
+            fn encode<W: std::io::Write>(&self, writer: &mut W) -> Result<(), std::io::Error> {
                 #encode_expand
                 Ok(())
             }
         }
 
-        impl Decodable for #name {
-            fn decode<R: Read>(reader: &mut R) -> Result<Self, std::io::Error> {
+        impl crate::packets::Decodable for #name {
+            fn decode<R: std::io::Read>(reader: &mut R) -> Result<Self, std::io::Error> {
                 Ok(Self {
                     #decode_expand
                 })
@@ -119,7 +119,7 @@ pub fn define_packet_parsers(input: TokenStream) -> TokenStream {
             })
             .collect();
 
-        quote! {
+        quote! { 
             impl #name {
                 #tokens
 
@@ -142,7 +142,7 @@ pub fn define_nbt_encoder(input: TokenStream) -> TokenStream {
     let name = input.ident;
 
     quote! {
-        impl Encodable for #name {
+        impl crate::packets::Encodable for #name {
             fn encode<W: std::io::Write>(&self, writer: &mut W) -> Result<(), std::io::Error> {
                 let tag = serialize(self)
                     .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e))?;
@@ -160,9 +160,9 @@ pub fn define_nbt_decoder(input: TokenStream) -> TokenStream {
     let name = input.ident;
 
     quote! {
-        impl Decodable for #name {
+        impl crate::packets::Decodable for #name {
             fn decode<R: std::io::Read>(reader: &mut R) -> Result<Self, std::io::Error> {
-                let to_read = VarInt::decode(reader)?;
+                let to_read = crate::VarInt::decode(reader)?;
                 let mut buffer = vec![0; to_read as usize];
 
                 reader.read_exact(&mut buffer)?;
