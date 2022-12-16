@@ -1,7 +1,10 @@
 use proc_macros::MinecraftPacket;
 use uuid::Uuid;
 
-use crate::{animation::EntityAnimationType, position::Angle, statistics::Statistic, VarInt};
+use crate::{
+    animation::EntityAnimationType, datatypes::sized::SizedVec, position::Angle,
+    statistics::Statistic, VarInt,
+};
 
 // 0x00
 #[derive(MinecraftPacket, Debug, PartialEq)]
@@ -55,9 +58,9 @@ pub struct EntityAnimation {
 }
 
 // 0x04
-#[derive(MinecraftPacket, Debug, PartialEq)]
+#[derive(MinecraftPacket, Debug, PartialEq, Clone)]
 pub struct AwardStatistics {
     pub id: VarInt,
     pub count: VarInt,
-    pub statistic: Vec<Statistic>,
+    pub statistic: SizedVec<Statistic, 1>,
 }

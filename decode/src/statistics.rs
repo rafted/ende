@@ -3,7 +3,7 @@ use crate::{
     VarInt,
 };
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Clone, Debug)]
 pub enum CategoryType {
     Mined = 0,
     Crafted = 1,
@@ -16,7 +16,7 @@ pub enum CategoryType {
     Custom = 8,
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Clone, Debug)]
 pub struct Statistic {
     pub category: CategoryType, // this is the id of CategoryType
     pub statistic_id: VarInt,
@@ -25,12 +25,12 @@ pub struct Statistic {
 
 impl Decodable for Statistic {
     fn decode<R: std::io::Read>(reader: &mut R) -> Result<Self, std::io::Error> {
-        let category_id = todo!("read varint");
-        let statistic_id = todo!("read varint");
-        let value = todo!("read varint");
+        let category_id = VarInt::decode(reader)?;
+        let statistic_id = VarInt::decode(reader)?;
+        let value = VarInt::decode(reader)?;
 
         Ok(Statistic {
-            category: match category_id {
+            category: match category_id.0 {
                 0 => CategoryType::Mined,
                 1 => CategoryType::Crafted,
                 2 => CategoryType::Used,
@@ -50,7 +50,7 @@ impl Decodable for Statistic {
 
 impl Encodable for Statistic {
     fn encode<W: std::io::Write>(&self, writer: &mut W) -> Result<(), std::io::Error> {
-        let category_id = match self.category {
+        let category_id = VarInt(match self.category {
             CategoryType::Mined => 0,
             CategoryType::Crafted => 1,
             CategoryType::Used => 2,
@@ -60,13 +60,13 @@ impl Encodable for Statistic {
             CategoryType::Killed => 6,
             CategoryType::KilledBy => 7,
             CategoryType::Custom => 8,
-        };
+        });
 
-        let statistic_id = self.statistic_id;
-        let value = self.value;
+        let statistic_id = &self.statistic_id;
+        let value = &self.value;
 
-        todo!("write varint (category_id)");
-        todo!("write varint (statistic_id)");
-        todo!("write varint (value)");
+        category_id.encode(writer)?;
+        statistic_id.encode(writer)?;
+        value.encode(writer)
     }
 }

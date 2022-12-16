@@ -7,11 +7,6 @@ use std::{
     io::{BufRead, BufReader},
 };
 
-#[derive(Debug, Serialize, Deserialize, NBTEncoder, NBTDecoder)]
-pub struct CompoundTag {
-    pub data: HashMap<String, Value>,
-}
-
 #[derive(Debug, Serialize, Deserialize)]
 pub enum Value {
     Byte(i8),

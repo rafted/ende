@@ -5,6 +5,8 @@ use uuid::Uuid;
 
 use crate::{packets::Decodable, VarInt};
 
+use super::sized::SizedVec;
+
 impl Decodable for VarInt {
     fn decode<R: Read>(reader: &mut R) -> Result<Self, std::io::Error> {
         let mut result = 0;
@@ -25,7 +27,7 @@ impl Decodable for VarInt {
             }
         }
 
-        Ok(result)
+        Ok(VarInt(result))
     }
 }
 
@@ -96,5 +98,21 @@ impl Decodable for Option<Uuid> {
         }
 
         Ok(None)
+    }
+}
+
+impl<T, const S: usize> Decodable for SizedVec<T, S>
+where
+    T: Decodable + Clone,
+{
+    fn decode<R: Read>(reader: &mut R) -> Result<Self, std::io::Error> {
+        let size = S;
+        let mut vec = SizedVec::<T, S>::new();
+
+        for _ in 0..size {
+            vec.inner.push(T::decode(reader)?);
+        }
+
+        Ok(vec)
     }
 }

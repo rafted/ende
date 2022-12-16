@@ -7,4 +7,5 @@ pub mod packets;
 pub mod position;
 pub mod statistics;
 
-pub type VarInt = i32;
+#[derive(Debug, Clone, PartialEq)]
+pub struct VarInt(i32);

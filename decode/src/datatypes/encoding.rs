@@ -5,9 +5,11 @@ use uuid::Uuid;
 
 use crate::{packets::Encodable, VarInt};
 
+use super::sized::SizedVec;
+
 impl Encodable for VarInt {
     fn encode<W: Write>(&self, writer: &mut W) -> Result<(), std::io::Error> {
-        let mut remaining = *self;
+        let mut remaining = self.0;
         while remaining >= 0b10000000 {
             let byte = (remaining as u8) | 0b10000000;
 
@@ -78,6 +80,19 @@ impl Encodable for Option<Uuid> {
 
         if let Some(id) = self {
             id.encode(writer)?;
+        }
+
+        Ok(())
+    }
+}
+
+impl<T, const S: usize> Encodable for SizedVec<T, S>
+where
+    T: Encodable + Clone,
+{
+    fn encode<W: Write>(&self, writer: &mut W) -> Result<(), std::io::Error> {
+        for element in self.iter() {
+            element.encode(writer)?;
         }
 
         Ok(())

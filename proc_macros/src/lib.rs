@@ -26,9 +26,12 @@ pub fn define_packet(input: TokenStream) -> TokenStream {
     let mut encode_expand = quote! {};
     let mut decode_expand = quote! {};
 
+    let mut segments_combined = String::from("");
+
     for (field_name, field_type) in fields {
         if let Type::Path(path) = &field_type {
             let segments = path.path.segments.to_token_stream().to_string();
+            segments_combined = segments_combined + &segments;
 
             if segments.contains("<") {
                 let types = segments.split("<").collect::<Vec<&str>>();
@@ -41,6 +44,10 @@ pub fn define_packet(input: TokenStream) -> TokenStream {
 
                 decode_expand.extend(quote! {
                     #field_name: #enum_ty::<#data_ty>::decode(reader)?,
+                });
+            } else if segments.contains("[") {
+                decode_expand.extend(quote! {
+                    #field_name: <#field_type as Decodable>::decode(reader)?,
                 });
             } else {
                 decode_expand.extend(quote! {
