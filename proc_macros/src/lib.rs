@@ -1,8 +1,7 @@
 use std::collections::HashMap;
 
 use proc_macro::TokenStream;
-use proc_macro2::{Punct, Spacing, Span, TokenTree};
-use quote::{quote, ToTokens, TokenStreamExt};
+use quote::{quote, ToTokens};
 use syn::{parse_macro_input, Data, DeriveInput, Fields, Ident, Type};
 use types::packet::{ClientState, PacketDirection, PacketMacroData};
 
@@ -241,45 +240,6 @@ pub fn define_packet_parsers(input: TokenStream) -> TokenStream {
     } else {
         panic!("Only allowed on enums!");
     }
-}
-
-#[proc_macro_derive(NBTEncoder)]
-pub fn define_nbt_encoder(input: TokenStream) -> TokenStream {
-    let input = parse_macro_input!(input as DeriveInput);
-    let name = input.ident;
-
-    quote! {
-        impl crate::packets::Encodable for #name {
-            fn encode<W: std::io::Write>(&self, writer: &mut W) -> Result<(), std::io::Error> {
-                let tag = serialize(self)
-                    .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e))?;
-
-                writer.write_all(tag.as_slice())
-            }
-        }
-    }
-    .into()
-}
-
-#[proc_macro_derive(NBTDecoder)]
-pub fn define_nbt_decoder(input: TokenStream) -> TokenStream {
-    let input = parse_macro_input!(input as DeriveInput);
-    let name = input.ident;
-
-    quote! {
-        impl crate::packets::Decodable for #name {
-            fn decode<R: std::io::Read>(reader: &mut R) -> Result<Self, std::io::Error> {
-                let to_read = crate::VarInt::decode(reader)?;
-                let mut buffer = vec![0; to_read as usize];
-
-                reader.read_exact(&mut buffer)?;
-
-                deserialize::<#name>(&buffer)
-                    .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e))
-            }
-        }
-    }
-    .into()
 }
 
 // we can definitely otpimize this, i just cannot be arsed to do the regex stuff.
