@@ -1,6 +1,10 @@
+use std::collections::HashMap;
+
 use proc_macro::TokenStream;
-use quote::{quote, ToTokens};
+use proc_macro2::{Punct, Spacing, Span, TokenTree};
+use quote::{quote, ToTokens, TokenStreamExt};
 use syn::{parse_macro_input, Data, DeriveInput, Fields, Ident, Type};
+use types::packet::{ClientState, PacketDirection, PacketMacroData};
 
 #[proc_macro_derive(MinecraftPacket)]
 pub fn define_packet(input: TokenStream) -> TokenStream {
@@ -88,6 +92,10 @@ pub fn define_packet_parsers(input: TokenStream) -> TokenStream {
 
     if let Data::Enum(data) = &input.data {
         let mut ids = quote! {};
+        let mut id_match_map = HashMap::<
+            ClientState,
+            HashMap<PacketDirection, Vec<PacketMacroData<proc_macro2::TokenStream>>>,
+        >::new();
 
         let tokens: proc_macro2::TokenStream = data
             .variants
@@ -109,11 +117,34 @@ pub fn define_packet_parsers(input: TokenStream) -> TokenStream {
                 let split = packet_value.split(", ").collect::<Vec<&str>>();
 
                 let id = split[0].parse::<proc_macro2::TokenStream>().unwrap();
-                let packet_value = split[1].parse::<proc_macro2::TokenStream>().unwrap();
+                let packet_direction = split[1].parse::<PacketDirection>().expect("PacketDirection was not able to be parsed from type!");
+                let required_client_state = split[2].parse::<ClientState>().expect("ClientState was not able to be parsed from type!");
+                let packet_value = split[3].parse::<proc_macro2::TokenStream>().unwrap();
 
                 let packet_value_snake = to_snake_case(&packet_value.to_string())
                     .parse::<proc_macro2::TokenStream>()
                     .unwrap();
+
+                if !id_match_map.contains_key(&required_client_state) {
+                    id_match_map.insert(required_client_state, HashMap::new());
+                }
+
+                let map = id_match_map.get_mut(&required_client_state).expect("wtf");
+
+                if !map.contains_key(&packet_direction) {
+                    map.insert(packet_direction, Vec::new());
+                }
+
+                let vec = map.get_mut(&packet_direction).expect("wha");
+
+                let data = PacketMacroData::<proc_macro2::TokenStream> {
+                    variant: variant_name.to_token_stream(),
+                    id: id.clone(),
+                    packet: packet_value.clone()
+                };
+
+                vec.push(data);
+
                 ids.extend(quote! {
                     #name::#variant_name => (#id as u8),
                 });
@@ -126,6 +157,64 @@ pub fn define_packet_parsers(input: TokenStream) -> TokenStream {
             })
             .collect();
 
+        let mut id_match_expanded = quote! {};
+
+        let invalid_state_error = quote! {
+            Err(std::io::Error::new(std::io::ErrorKind::NotFound, "Unimplemented or invalid packet id."))?
+        };
+
+        let ids_name = "id".parse::<proc_macro2::TokenStream>().unwrap();
+        let states_name = "state".parse::<proc_macro2::TokenStream>().unwrap();
+        let directions_name = "direction".parse::<proc_macro2::TokenStream>().unwrap();
+
+        for value in id_match_map {
+            let client_state = value
+                .0
+                .to_string()
+                .parse::<proc_macro2::TokenStream>()
+                .unwrap();
+            let map = value.1;
+            let mut directions = quote! {};
+
+            for value in map {
+                let direction = value
+                    .0
+                    .to_string()
+                    .parse::<proc_macro2::TokenStream>()
+                    .unwrap();
+                let data = value.1;
+                let mut packet_ids = quote! {};
+
+                for data in data {
+                    let id = data.id;
+                    // let packet_value = data.packet;
+                    let variant_name = data.variant;
+
+                    packet_ids.extend(quote! {
+                        #id => Self::#variant_name,
+                    });
+                }
+
+                directions.extend(quote! {
+                    PacketDirection::#direction => {
+                        match #ids_name {
+                            #packet_ids
+                            _ => #invalid_state_error
+                        }
+                    },
+                })
+            }
+
+            id_match_expanded.extend(quote! {
+                ClientState::#client_state => {
+                    match #directions_name {
+                        #directions
+                        _ => #invalid_state_error
+                    }
+                },
+            });
+        }
+
         quote! {
             impl #name {
                 #tokens
@@ -134,6 +223,17 @@ pub fn define_packet_parsers(input: TokenStream) -> TokenStream {
                     match self {
                         #ids
                     }
+                }
+
+                fn get_from_id(
+                    #ids_name: u8,
+                    #states_name: ClientState,
+                    #directions_name: PacketDirection
+                ) -> Result<Self, std::io::Error> {
+                    Ok(match #states_name {
+                        #id_match_expanded
+                        _ => #invalid_state_error
+                    })
                 }
             }
         }

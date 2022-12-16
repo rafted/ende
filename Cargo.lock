@@ -40,6 +40,7 @@ dependencies = [
  "byteorder",
  "proc_macros",
  "serde",
+ "types",
  "uuid",
 ]
 
@@ -108,6 +109,7 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
+ "types",
 ]
 
 [[package]]
@@ -179,6 +181,10 @@ dependencies = [
  "quote",
  "unicode-ident",
 ]
+
+[[package]]
+name = "types"
+version = "0.1.0"
 
 [[package]]
 name = "unicode-ident"

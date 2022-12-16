@@ -36,7 +36,7 @@ impl Decodable for Position {
 
 impl Encodable for Position {
     fn encode<W: Write>(&self, writer: &mut W) -> Result<(), std::io::Error> {
-        let value: i64 = ((self.x & 0x3FFFFFF) << 38) as i64
+        let value: i64 = (((self.x & 0x3FFFFFF) as i64) << 38) as i64
             | ((self.z & 0x3FFFFFF) << 12) as i64
             | (self.y as i32 & 0xFFF) as i64;
 
