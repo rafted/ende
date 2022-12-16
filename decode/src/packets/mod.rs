@@ -6,8 +6,12 @@ use std::io::{Cursor, Read, Write};
 use proc_macros::ParsePacket;
 use types::packet::{ClientState, PacketDirection};
 
+// not actually unused imports, we use them in the macro
+#[allow(unused_imports)]
 use self::clientbound::{login::*, play::*, status::*};
+#[allow(unused_imports)]
 use self::clientbound::{play::*, status::*};
+#[allow(unused_imports)]
 use self::serverbound::{login::*, play::*, status::*};
 
 pub trait Decodable: Sized {
