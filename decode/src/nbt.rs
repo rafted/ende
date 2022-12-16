@@ -1,4 +1,3 @@
-use crate::{decoding::Decodable, encoding::Encodable, VarInt};
 use bincode::{deserialize, serialize};
 use byteorder::{BigEndian, ReadBytesExt};
 use proc_macros::{NBTDecoder, NBTEncoder};
@@ -6,7 +5,6 @@ use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,
     io::{BufRead, BufReader},
-    num::TryFromIntError,
 };
 
 #[derive(Debug, Serialize, Deserialize, NBTEncoder, NBTDecoder)]
