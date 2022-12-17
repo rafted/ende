@@ -1,6 +1,4 @@
-use bincode::{deserialize, serialize};
 use byteorder::{BigEndian, ReadBytesExt};
-use proc_macros::{NBTDecoder, NBTEncoder};
 use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,

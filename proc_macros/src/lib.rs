@@ -36,6 +36,9 @@ pub fn define_packet(input: TokenStream) -> TokenStream {
             let segments = path.path.segments.to_token_stream().to_string();
             segments_combined = segments_combined + &segments;
 
+            // this is for types that contain a generic type, e.g. Option<T>. this will then
+            // call the decode function through
+            // Option::<T>::decode(R);
             if segments.contains("<") {
                 let types = segments.split("<").collect::<Vec<&str>>();
 
@@ -47,10 +50,6 @@ pub fn define_packet(input: TokenStream) -> TokenStream {
 
                 decode_expand.extend(quote! {
                     #field_name: #enum_ty::<#data_ty>::decode(reader)?,
-                });
-            } else if segments.contains("[") {
-                decode_expand.extend(quote! {
-                    #field_name: <#field_type as Decodable>::decode(reader)?,
                 });
             } else {
                 decode_expand.extend(quote! {
@@ -66,14 +65,19 @@ pub fn define_packet(input: TokenStream) -> TokenStream {
     // Generate the implementation of the encode and decode methods
     let expanded = quote! {
         impl crate::packets::Encodable for #name {
-            fn encode<W: std::io::Write>(&self, writer: &mut W) -> Result<(), std::io::Error> {
+            fn encode<W: std::io::Write>(
+                &self,
+                writer: &mut W
+            ) -> Result<(), std::io::Error> {
                 #encode_expand
                 Ok(())
             }
         }
 
         impl crate::packets::Decodable for #name {
-            fn decode<R: std::io::Read>(reader: &mut R) -> Result<Self, std::io::Error> {
+            fn decode<R: std::io::Read>(
+                reader: &mut R
+            ) -> Result<Self, std::io::Error> {
                 Ok(Self {
                     #decode_expand
                 })
@@ -116,8 +120,14 @@ pub fn define_packet_parsers(input: TokenStream) -> TokenStream {
                 let split = packet_value.split(", ").collect::<Vec<&str>>();
 
                 let id = split[0].parse::<proc_macro2::TokenStream>().unwrap();
-                let packet_direction = split[1].parse::<PacketDirection>().expect("PacketDirection was not able to be parsed from type!");
-                let required_client_state = split[2].parse::<ClientState>().expect("ClientState was not able to be parsed from type!");
+                let packet_direction = split[1]
+                    .parse::<PacketDirection>()
+                    .expect("PacketDirection was not able to be parsed from type!");
+
+                let required_client_state = split[2]
+                    .parse::<ClientState>()
+                    .expect("ClientState was not able to be parsed from type!");
+
                 let packet_value = split[3].parse::<proc_macro2::TokenStream>().unwrap();
 
                 let packet_value_snake = to_snake_case(&packet_value.to_string())
@@ -139,7 +149,7 @@ pub fn define_packet_parsers(input: TokenStream) -> TokenStream {
                 let data = PacketMacroData::<proc_macro2::TokenStream> {
                     variant: variant_name.to_token_stream(),
                     id: id.clone(),
-                    packet: packet_value.clone()
+                    packet: packet_value.clone(),
                 };
 
                 vec.push(data);
@@ -149,7 +159,9 @@ pub fn define_packet_parsers(input: TokenStream) -> TokenStream {
                 });
 
                 quote! {
-                    fn #packet_value_snake<R: Read>(reader: &mut R) -> Result<#packet_value, std::io::Error> {
+                    fn #packet_value_snake<R: Read>(
+                        reader: &mut R
+                    ) -> Result<#packet_value, std::io::Error> {
                         #packet_value::decode(reader)
                     }
                 }
@@ -157,7 +169,6 @@ pub fn define_packet_parsers(input: TokenStream) -> TokenStream {
             .collect();
 
         let mut id_match_expanded = quote! {};
-
         let invalid_state_error = quote! {
             Err(std::io::Error::new(std::io::ErrorKind::NotFound, "Unimplemented or invalid packet id."))?
         };
@@ -218,7 +229,9 @@ pub fn define_packet_parsers(input: TokenStream) -> TokenStream {
             impl #name {
                 #tokens
 
-                fn get_id(&self) -> u8 {
+                fn get_id(
+                    &self
+                ) -> u8 {
                     match self {
                         #ids
                     }
